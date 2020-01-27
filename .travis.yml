@@ -1,0 +1,17 @@
+language: cpp
+addons:
+  apt:
+    packages:
+      - build-essential
+      - libboost-all-dev
+      - libssl-dev
+      - libdb++-dev
+      - libminiupnpc-dev
+jobs:
+  include:
+    - os: linux
+      dist: xenial
+    - os: linux
+      dist: bionic
+script:
+  - cd src && make -j2 -f makefile.linux && strip fluttercoind
