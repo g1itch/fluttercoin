@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/g1itch/fluttercoin.svg?branch=testing)](https://travis-ci.org/g1itch/fluttercoin)
+
 Flutter Coin (FLT)
 
 Scrypt Proof of Work/Proof of Stake Hybrid with Proof-of-Transaction
