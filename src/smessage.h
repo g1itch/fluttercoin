@@ -64,7 +64,6 @@ extern CCriticalSection cs_smsg;            // all except inbox and outbox
 extern CCriticalSection cs_smsgDB;
 
 
-
 #pragma pack(push, 1)
 class SecureMessage
 {
@@ -74,25 +73,25 @@ public:
         nPayload = 0;
         pPayload = NULL;
     };
-    
+
     ~SecureMessage()
     {
         if (pPayload)
             delete[] pPayload;
         pPayload = NULL;
     };
-    
-    unsigned char   hash[4];
-    unsigned char   version[2];
-    unsigned char   flags;
-    int64_t         timestamp;
-    unsigned char   iv[16];
-    unsigned char   cpkR[33];
-    unsigned char   mac[32];
-    unsigned char   nonse[4];
-    uint32_t        nPayload;
-    unsigned char*  pPayload;
-        
+
+    uint8_t   hash[4];
+    uint8_t   version[2];
+    uint8_t   flags;
+    int64_t   timestamp;
+    uint8_t   iv[16];
+    uint8_t   cpkR[33];
+    uint8_t   mac[32];
+    uint8_t   nonse[4];
+    uint32_t  nPayload;
+    uint8_t*  pPayload;
+
 };
 #pragma pack(pop)
 
@@ -101,31 +100,31 @@ class MessageData
 {
 // -- Decrypted SecureMessage data
 public:
-    int64_t                     timestamp;
-    std::string                 sToAddress;
-    std::string                 sFromAddress;
-    std::vector<unsigned char>  vchMessage;         // null terminated plaintext
+    int64_t               timestamp;
+    std::string           sToAddress;
+    std::string           sFromAddress;
+    std::vector<uint8_t>  vchMessage;         // null terminated plaintext
 };
 
 
 class SecMsgToken
 {
 public:
-    SecMsgToken(int64_t ts, unsigned char* p, int np, long int o)
+    SecMsgToken(int64_t ts, uint8_t* p, int np, long int o)
     {
         timestamp = ts;
-        
+
         if (np < 8) // payload will always be > 8, just make sure
             memset(sample, 0, 8);
         else
             memcpy(sample, p, 8);
         offset = o;
     };
-    
+
     SecMsgToken() {};
-    
+
     ~SecMsgToken() {};
-    
+
     bool operator <(const SecMsgToken& y) const
     {
         // pack and memcmp from timesent?
@@ -133,11 +132,11 @@ public:
             return memcmp(sample, y.sample, 8) < 0;
         return timestamp < y.timestamp;
     }
-    
-    int64_t                     timestamp;    // doesn't need to be full 64 bytes?
-    unsigned char               sample[8];    // first 8 bytes of payload - a hash
-    int64_t                     offset;       // offset
-    
+
+    int64_t               timestamp;    // doesn't need to be full 64 bytes?
+    uint8_t               sample[8];    // first 8 bytes of payload - a hash
+    int64_t               offset;       // offset
+
 };
 
 
@@ -152,15 +151,15 @@ public:
         nLockPeerId     = 0;
     };
     ~SecMsgBucket() {};
-    
+
     void hashBucket();
-    
+
     int64_t                     timeChanged;
     uint32_t                    hash;           // token set should get ordered the same on each node
     uint32_t                    nLockCount;     // set when smsgWant first sent, unset at end of smsgMsg, ticks down in ThreadSecureMsg()
     uint32_t                    nLockPeerId;    // id of peer that bucket is locked for
     std::set<SecMsgToken>       setTokens;
-    
+
 };
 
 
@@ -168,7 +167,7 @@ public:
 class CBitcoinAddress_B : public CBitcoinAddress
 {
 public:
-    unsigned char getVersion()
+    uint8_t getVersion()
     {
         return nVersion;
     }
@@ -194,11 +193,11 @@ public:
         fReceiveEnabled     = receiveOn;
         fReceiveAnon        = receiveAnon;
     };
-    
+
     std::string     sAddress;
     bool            fReceiveEnabled;
     bool            fReceiveAnon;
-    
+
     IMPLEMENT_SERIALIZE
     (
         READWRITE(this->sAddress);
@@ -216,7 +215,7 @@ public:
         fNewAddressRecv = true;
         fNewAddressAnon = true;
     }
-    
+
     bool fNewAddressRecv;
     bool fNewAddressAnon;
 };
@@ -225,11 +224,11 @@ public:
 class SecMsgCrypter
 {
 private:
-    unsigned char chKey[32];
-    unsigned char chIV[16];
+    uint8_t chKey[32];
+    uint8_t chIV[16];
     bool fKeySet;
 public:
-    
+
     SecMsgCrypter()
     {
         // Try to keep the key data out of swap (and be a bit over-careful to keep the IV that we don't even use out of swap)
@@ -239,35 +238,35 @@ public:
         LockedPageManager::instance.LockRange(&chIV[0], sizeof chIV);
         fKeySet = false;
     }
-    
+
     ~SecMsgCrypter()
     {
         // clean key
         memset(&chKey, 0, sizeof chKey);
         memset(&chIV, 0, sizeof chIV);
         fKeySet = false;
-        
+
         LockedPageManager::instance.UnlockRange(&chKey[0], sizeof chKey);
         LockedPageManager::instance.UnlockRange(&chIV[0], sizeof chIV);
     }
-    
-    bool SetKey(const std::vector<unsigned char>& vchNewKey, unsigned char* chNewIV);
-    bool SetKey(const unsigned char* chNewKey, unsigned char* chNewIV);
-    bool Encrypt(unsigned char* chPlaintext, uint32_t nPlain, std::vector<unsigned char> &vchCiphertext);
-    bool Decrypt(unsigned char* chCiphertext, uint32_t nCipher, std::vector<unsigned char>& vchPlaintext);
+
+    bool SetKey(const std::vector<uint8_t>& vchNewKey, uint8_t* chNewIV);
+    bool SetKey(const uint8_t* chNewKey, uint8_t* chNewIV);
+    bool Encrypt(uint8_t* chPlaintext, uint32_t nPlain, std::vector<uint8_t> &vchCiphertext);
+    bool Decrypt(uint8_t* chCiphertext, uint32_t nCipher, std::vector<uint8_t>& vchPlaintext);
 };
 
 
 class SecMsgStored
 {
 public:
-    int64_t                         timeReceived;
-    char                            status;         // read etc
-    uint16_t                        folderId;
-    std::string                     sAddrTo;        // when in owned addr, when sent remote addr
-    std::string                     sAddrOutbox;    // owned address this copy was encrypted with
-    std::vector<unsigned char>      vchMessage;     // message header + encryped payload
-    
+    int64_t                   timeReceived;
+    char                      status;         // read etc
+    uint16_t                  folderId;
+    std::string               sAddrTo;        // when in owned addr, when sent remote addr
+    std::string               sAddrOutbox;    // owned address this copy was encrypted with
+    std::vector<uint8_t>      vchMessage;     // message header + encryped payload
+
     IMPLEMENT_SERIALIZE
     (
         READWRITE(this->timeReceived);
@@ -286,42 +285,41 @@ public:
     {
         activeBatch = NULL;
     };
-    
+
     ~SecMsgDB()
     {
         // -- deletes only data scoped to this TxDB object.
-        
+
         if (activeBatch)
             delete activeBatch;
     };
-    
+
     bool Open(const char* pszMode="r+");
-    
+
     bool ScanBatch(const CDataStream& key, std::string* value, bool* deleted) const;
-    
+
     bool TxnBegin();
     bool TxnCommit();
     bool TxnAbort();
-    
+
     bool ReadPK(CKeyID& addr, CPubKey& pubkey);
     bool WritePK(CKeyID& addr, CPubKey& pubkey);
     bool ExistsPK(CKeyID& addr);
-    
-    bool NextSmesg(leveldb::Iterator* it, std::string& prefix, unsigned char* vchKey, SecMsgStored& smsgStored);
-    bool NextSmesgKey(leveldb::Iterator* it, std::string& prefix, unsigned char* vchKey);
-    bool ReadSmesg(unsigned char* chKey, SecMsgStored& smsgStored);
-    bool WriteSmesg(unsigned char* chKey, SecMsgStored& smsgStored);
-    bool ExistsSmesg(unsigned char* chKey);
-    bool EraseSmesg(unsigned char* chKey);
-    
+
+    bool NextSmesg(leveldb::Iterator* it, std::string& prefix, uint8_t* vchKey, SecMsgStored& smsgStored);
+    bool NextSmesgKey(leveldb::Iterator* it, std::string& prefix, uint8_t* vchKey);
+    bool ReadSmesg(uint8_t* chKey, SecMsgStored& smsgStored);
+    bool WriteSmesg(uint8_t* chKey, SecMsgStored& smsgStored);
+    bool ExistsSmesg(uint8_t* chKey);
+    bool EraseSmesg(uint8_t* chKey);
+
     leveldb::DB *pdb;       // points to the global instance
     leveldb::WriteBatch *activeBatch;
-    
+
 };
 
 std::string getTimeString(int64_t timestamp, char *buffer, size_t nBuffer);
 std::string fsReadable(uint64_t nBytes);
-
 
 int SecureMsgBuildBucketSet();
 int SecureMsgAddWalletAddresses();
@@ -348,7 +346,7 @@ bool SecureMsgScanBuckets();
 int SecureMsgWalletUnlocked();
 int SecureMsgWalletKeyChanged(std::string sAddress, std::string sLabel, ChangeType mode);
 
-int SecureMsgScanMessage(unsigned char *pHeader, unsigned char *pPayload, uint32_t nPayload, bool reportToGui);
+int SecureMsgScanMessage(uint8_t *pHeader, uint8_t *pPayload, uint32_t nPayload, bool reportToGui);
 
 int SecureMsgGetStoredKey(CKeyID& ckid, CPubKey& cpkOut);
 int SecureMsgGetLocalKey(CKeyID& ckid, CPubKey& cpkOut);
@@ -356,24 +354,24 @@ int SecureMsgGetLocalPublicKey(std::string& strAddress, std::string& strPublicKe
 
 int SecureMsgAddAddress(std::string& address, std::string& publicKey);
 
-int SecureMsgRetrieve(SecMsgToken &token, std::vector<unsigned char>& vchData);
+int SecureMsgRetrieve(SecMsgToken &token, std::vector<uint8_t>& vchData);
 
-int SecureMsgReceive(CNode* pfrom, std::vector<unsigned char>& vchData);
+int SecureMsgReceive(CNode* pfrom, std::vector<uint8_t>& vchData);
 
-int SecureMsgStoreUnscanned(unsigned char *pHeader, unsigned char *pPayload, uint32_t nPayload);
-int SecureMsgStore(unsigned char *pHeader, unsigned char *pPayload, uint32_t nPayload, bool fUpdateBucket);
+int SecureMsgStoreUnscanned(uint8_t *pHeader, uint8_t *pPayload, uint32_t nPayload);
+int SecureMsgStore(uint8_t *pHeader, uint8_t *pPayload, uint32_t nPayload, bool fUpdateBucket);
 int SecureMsgStore(SecureMessage& smsg, bool fUpdateBucket);
 
 
 
 int SecureMsgSend(std::string& addressFrom, std::string& addressTo, std::string& message, std::string& sError);
 
-int SecureMsgValidate(unsigned char *pHeader, unsigned char *pPayload, uint32_t nPayload);
-int SecureMsgSetHash(unsigned char *pHeader, unsigned char *pPayload, uint32_t nPayload);
+int SecureMsgValidate(uint8_t *pHeader, uint8_t *pPayload, uint32_t nPayload);
+int SecureMsgSetHash(uint8_t *pHeader, uint8_t *pPayload, uint32_t nPayload);
 
 int SecureMsgEncrypt(SecureMessage& smsg, std::string& addressFrom, std::string& addressTo, std::string& message);
 
-int SecureMsgDecrypt(bool fTestOnly, std::string& address, unsigned char *pHeader, unsigned char *pPayload, uint32_t nPayload, MessageData& msg);
+int SecureMsgDecrypt(bool fTestOnly, std::string& address, uint8_t *pHeader, uint8_t *pPayload, uint32_t nPayload, MessageData& msg);
 int SecureMsgDecrypt(bool fTestOnly, std::string& address, SecureMessage& smsg, MessageData& msg);
 
 
