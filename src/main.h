@@ -11,7 +11,6 @@
 #include "net.h"
 #include "script.h"
 #include "scrypt.h"
-#include "zerocoin/Zerocoin.h"
 #include "base58.h"
 
 #include <list>
@@ -44,8 +43,8 @@ static const unsigned int FORK_FINAL = 1397936903;
 static const unsigned int FORK_ADJUST_SOFT = 1517428800; // Jan 31 2018, 20:00:00 UTC --ofeefee
 static const unsigned int FORK_ADJUST_HARD = 1518033600; // Feb 7 2018, 20:00:00 UTC --ofeefee
 
-string SearchTerm(const char *chAddress);
-string SearchTermV2(const char *chAddress);
+std::string SearchTerm(const char *chAddress);
+std::string SearchTermV2(const char *chAddress);
 bool fAddrMiner (const char *chHash, const char *chTerm);
 
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
@@ -65,7 +64,6 @@ static const uint256 hashBadBlock15553("0x000000000141634a8cd6b9ab39c21447a41eea
 inline int64 PastDrift(int64 nTime)   { return nTime - 2 * 60 * 60; } // up to 2 hours from the past
 inline int64 FutureDrift(int64 nTime) { return nTime + 2 * 60 * 60; } // up to 2 hours from the future
 
-extern libzerocoin::Params* ZCParams;
 extern CScript COINBASE_FLAGS;
 extern CCriticalSection cs_main;
 extern std::map<uint256, CBlockIndex*> mapBlockIndex;
